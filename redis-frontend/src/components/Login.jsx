@@ -1,3 +1,19 @@
+/**
+ * Login Component
+ * 
+ * This component handles user authentication including login and admin registration.
+ * It provides a login form for existing users and a registration modal for creating
+ * new admin accounts with an admin code.
+ * 
+ * Features:
+ * - User login with username/password
+ * - Admin registration with validation
+ * - Form validation
+ * - Toast notifications for success/error feedback
+ * - Navigation to dashboard on successful login
+ * 
+ * @module components/Login
+ */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -6,20 +22,38 @@ import './Login.css'; // We'll create this file next
 
 const API_URL = 'http://localhost:5000';
 
+/**
+ * Login component for user authentication
+ * 
+ * @param {Object} props - Component props
+ * @param {Function} props.onLoginSuccess - Callback function to execute after successful login
+ * @returns {JSX.Element} Rendered Login component
+ */
 const Login = ({ onLoginSuccess }) => {
+  // State for login credentials
   const [credentials, setCredentials] = useState({
     username: '',
     password: ''
   });
+  
+  // State for registration modal visibility
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  
+  // State for registration form data
   const [registerData, setRegisterData] = useState({
     username: '',
     password: '',
     confirmPassword: '',
     adminCode: ''
   });
+  
   const navigate = useNavigate();
 
+  /**
+   * Handles changes to login form input fields
+   * 
+   * @param {Object} e - Event object from input change
+   */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setCredentials(prev => ({
@@ -28,6 +62,11 @@ const Login = ({ onLoginSuccess }) => {
     }));
   };
 
+  /**
+   * Handles changes to registration form input fields
+   * 
+   * @param {Object} e - Event object from input change
+   */
   const handleRegisterChange = (e) => {
     const { name, value } = e.target;
     setRegisterData(prev => ({
@@ -36,6 +75,13 @@ const Login = ({ onLoginSuccess }) => {
     }));
   };
 
+  /**
+   * Handles login form submission
+   * Authenticates user and stores token in localStorage on success
+   * 
+   * @async
+   * @param {Object} e - Form submission event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -54,8 +100,16 @@ const Login = ({ onLoginSuccess }) => {
     }
   };
 
+  /**
+   * Handles admin registration form submission
+   * Validates passwords match and sends registration request
+   * 
+   * @async
+   * @param {Object} e - Form submission event
+   */
   const handleRegister = async (e) => {
     e.preventDefault();
+    // Validate password confirmation
     if (registerData.password !== registerData.confirmPassword) {
       showToast.error('Passwords do not match');
       return;
@@ -70,6 +124,7 @@ const Login = ({ onLoginSuccess }) => {
       if (response.data.message) {
         showToast.success('Registration successful');
         setShowRegisterModal(false);
+        // Reset form data after successful registration
         setRegisterData({
           username: '',
           password: '',

@@ -1,7 +1,39 @@
+/**
+ * DataTable Component
+ * 
+ * A reusable table component that provides features like pagination, searching,
+ * and action buttons for interacting with tabular data.
+ * 
+ * Features:
+ * - Pagination with configurable entries per page
+ * - Search functionality
+ * - Action buttons (view, edit, delete)
+ * - Loading state display
+ * - Responsive design
+ * - Support for both internal and external state management
+ * 
+ * @module components/DataTable
+ */
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaEye, FaSearch, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
 import './DataTable.css';
 
+/**
+ * DataTable component for displaying and interacting with tabular data
+ * 
+ * @param {Object} props - Component props
+ * @param {Array} props.data - Array of data objects to display in the table
+ * @param {Array} props.columns - Array of column configuration objects with header and accessor function
+ * @param {string} [props.searchTerm] - External search term state (optional)
+ * @param {Function} [props.setSearchTerm] - Function to update external search term state (optional)
+ * @param {number} [props.entriesPerPage] - External entries per page state (optional) 
+ * @param {Function} [props.setEntriesPerPage] - Function to update external entries per page state (optional)
+ * @param {Function} [props.onEdit] - Callback function when edit button is clicked (optional)
+ * @param {Function} [props.onDelete] - Callback function when delete button is clicked (optional)
+ * @param {Function} [props.onView] - Callback function when view button is clicked (optional)
+ * @param {boolean} [props.loading=false] - Whether the data is currently loading
+ * @returns {JSX.Element} Rendered DataTable component
+ */
 const DataTable = ({ 
   data = [], 
   columns = [],
@@ -19,41 +51,54 @@ const DataTable = ({
   const [internalEntriesPerPage, setInternalEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Determine which state to use
+  // Determine which state to use (external or internal)
   const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
   const setSearchTerm = setExternalSearchTerm || setInternalSearchTerm;
   const entriesPerPage = externalEntriesPerPage !== undefined ? externalEntriesPerPage : internalEntriesPerPage;
   const setEntriesPerPage = setExternalEntriesPerPage || setInternalEntriesPerPage;
 
-  // Reset to first page when search term or entries per page changes
+  /**
+   * Reset to first page when search term or entries per page changes
+   * This ensures the user sees the first page of results after filtering
+   */
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, entriesPerPage]);
 
-  // Calculate pagination
+  // Calculate pagination values
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
   const currentEntries = data.slice(indexOfFirstEntry, indexOfLastEntry);
   const totalPages = Math.ceil(data.length / entriesPerPage);
 
-  // Handle page change
+  /**
+   * Handle page change in pagination
+   * @param {number} pageNumber - The page number to navigate to
+   */
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
 
-  // Handle entries per page change
+  /**
+   * Handle change in the number of entries to display per page
+   * @param {Object} e - Event object from the select input
+   */
   const handleEntriesPerPageChange = (e) => {
     setEntriesPerPage(Number(e.target.value));
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when changing entries per page
   };
 
-  // Handle search term change
+  /**
+   * Handle changes to the search input
+   * @param {Object} e - Event object from the search input
+   */
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
 
   return (
     <div className="data-table">
+      {/* Table control section with entries selector and search box */}
       <div className="table-controls">
         <div className="entries-selector">
           <label>
@@ -84,6 +129,7 @@ const DataTable = ({
         </div>
       </div>
       
+      {/* Main table container */}
       <div className="table-container">
         <table>
           <thead>
@@ -96,18 +142,21 @@ const DataTable = ({
           </thead>
           <tbody>
             {loading ? (
+              // Display loading message when data is being fetched
               <tr>
                 <td colSpan={columns.length + 1} className="loading-cell">
                   Loading...
                 </td>
               </tr>
             ) : currentEntries.length === 0 ? (
+              // Display message when no data is available
               <tr>
                 <td colSpan={columns.length + 1} className="no-data-cell">
                   No data available
                 </td>
               </tr>
             ) : (
+              // Display data rows with action buttons
               currentEntries.map((item, rowIndex) => (
                 <tr key={rowIndex}>
                   {columns.map((column, colIndex) => (
@@ -153,6 +202,7 @@ const DataTable = ({
         </table>
       </div>
       
+      {/* Table footer with pagination controls */}
       <div className="table-footer">
         <div className="entries-info">
           Showing {data.length > 0 ? indexOfFirstEntry + 1 : 0} to {Math.min(indexOfLastEntry, data.length)} of {data.length} entries

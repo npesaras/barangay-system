@@ -1,3 +1,23 @@
+/**
+ * Barangay Management System - Backend Server
+ * 
+ * This is the main server file for the Barangay Management System backend.
+ * It provides a RESTful API for the frontend to interact with the Redis database.
+ * 
+ * Main functionality:
+ * - User authentication (login, register, with JWT)
+ * - Resident CRUD operations (create, read, update, delete)
+ * - Analytics for resident data (demographics, statistics)
+ * - File uploads for resident profile images
+ * - Data export (CSV) for reporting
+ * 
+ * The server uses Redis as its primary database, and stores data in structured Hash sets.
+ * JWT authentication is used to secure API endpoints, with role-based access control.
+ * 
+ * @author Your Name
+ * @version 1.0.0
+ */
+
 const express = require('express');
 const redis = require('redis');
 const cors = require('cors');

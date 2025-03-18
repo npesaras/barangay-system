@@ -1,3 +1,18 @@
+/**
+ * ResidentsRecord Component
+ * 
+ * This component manages the display and interaction with resident records.
+ * It renders a DataTable with residents' information and provides functionality
+ * for adding, viewing, editing, and deleting residents.
+ * 
+ * Features:
+ * - Display residents in a paginated, searchable table
+ * - View detailed resident information
+ * - Add new residents
+ * - Edit existing residents
+ * - Delete residents
+ * - Export residents data to CSV
+ */
 import React, { useState, useEffect } from 'react';
 import DataTable from './DataTable';
 import AddResidentModal from './AddResidentModal';
@@ -12,21 +27,35 @@ import './ResidentsRecord.css';
 const API_URL = 'http://localhost:5000';
 
 const ResidentsRecord = () => {
+  // State management for residents data and UI
   const [residents, setResidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Modal visibility states
   const [showViewModal, setShowViewModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Currently selected resident for view/edit operations
   const [selectedResident, setSelectedResident] = useState(null);
+  
+  // DataTable configuration
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Track image loading errors
   const [imageError, setImageError] = useState(false);
 
+  // Fetch residents data on component mount
   useEffect(() => {
     fetchResidents();
   }, []);
 
+  /**
+   * Fetches all residents from the API
+   * Handles loading state and errors
+   */
   const fetchResidents = async () => {
     try {
       setLoading(true);
@@ -45,31 +74,48 @@ const ResidentsRecord = () => {
     }
   };
 
+  /**
+   * Opens the view modal for a resident
+   * @param {Object} resident - The resident to view
+   */
   const handleView = (resident) => {
     setSelectedResident(resident);
     setImageError(false);
     setShowViewModal(true);
   };
 
+  /**
+   * Opens the edit modal for a resident
+   * @param {Object} resident - The resident to edit
+   */
   const handleEdit = (resident) => {
     setSelectedResident(resident);
     setShowEditModal(true);
   };
 
+  /**
+   * Updates a resident with the provided form data
+   * @param {string} id - The ID of the resident to update
+   * @param {Object} formData - The updated resident data
+   */
   const handleUpdateResident = async (id, formData) => {
     try {
+      // Show a loading toast with longer timeout for image uploads
       showToast.info('Updating resident...', { autoClose: 10000 });
       
       await residentService.updateResident(id, formData);
       showToast.success('Resident updated successfully');
       setShowEditModal(false);
       
+      // Reset the selected resident to avoid stale data
       setSelectedResident(null);
       
+      // Fetch fresh data
       fetchResidents();
     } catch (error) {
       console.error('Error updating resident:', error);
       
+      // Provide specific error messages based on the error type
       let errorMessage = 'Failed to update resident';
       
       if (error.response?.data?.message) {
@@ -88,7 +134,12 @@ const ResidentsRecord = () => {
     }
   };
 
+  /**
+   * Deletes a resident after confirmation
+   * @param {Object} resident - The resident to delete
+   */
   const handleDelete = async (resident) => {
+    // Confirm deletion with the user
     if (!window.confirm('Are you sure you want to delete this resident?')) {
       return;
     }
@@ -103,6 +154,10 @@ const ResidentsRecord = () => {
     }
   };
 
+  /**
+   * Adds a new resident with the provided form data
+   * @param {Object} formData - The new resident data
+   */
   const handleAddResident = async (formData) => {
     try {
       await residentService.createResident(formData);
@@ -115,6 +170,10 @@ const ResidentsRecord = () => {
     }
   };
 
+  /**
+   * Exports residents data to CSV format
+   * Creates a downloadable file with all resident records
+   */
   const exportToCSV = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -125,6 +184,7 @@ const ResidentsRecord = () => {
         responseType: 'blob'
       });
       
+      // Create and trigger download of the CSV file
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -139,6 +199,7 @@ const ResidentsRecord = () => {
     }
   };
 
+  // Define columns for the DataTable
   const columns = [
     {
       header: 'Fullname',
@@ -166,6 +227,10 @@ const ResidentsRecord = () => {
     }
   ];
 
+  /**
+   * Filter residents based on search term
+   * Searches in name, citizenship, purok, and voter status fields
+   */
   const filteredResidents = residents.filter(resident => {
     if (!searchTerm) return true;
     
@@ -178,10 +243,12 @@ const ResidentsRecord = () => {
            (resident.votersStatus && resident.votersStatus.toLowerCase().includes(searchLower));
   });
 
+  // Render the component UI
   return (
     <div className="residents-record">
       <h2>Residents Record</h2>
       
+      {/* Action buttons for adding residents and exporting data */}
       <div className="actions-bar">
         <button 
           className="btn btn-primary"
@@ -198,6 +265,7 @@ const ResidentsRecord = () => {
         </button>
       </div>
 
+      {/* Display error message if there's an error fetching data */}
       {error && (
         <div className="error-message">
           {error}
@@ -210,6 +278,7 @@ const ResidentsRecord = () => {
         </div>
       )}
 
+      {/* Display appropriate UI based on loading and data state */}
       {loading ? (
         <div className="loading-message">Loading residents data...</div>
       ) : residents.length === 0 && !error ? (
@@ -231,11 +300,13 @@ const ResidentsRecord = () => {
         />
       )}
 
+      {/* View resident modal */}
       {showViewModal && selectedResident && (
         <div className="modal">
           <div className="modal-content">
             <h2>Resident Details</h2>
             <div className="view-details">
+              {/* Display resident profile image if available */}
               {selectedResident.profileImage && !imageError && (
                 <div className="profile-image">
                   <img 
@@ -245,6 +316,7 @@ const ResidentsRecord = () => {
                   />
                 </div>
               )}
+              {/* Resident details section */}
               <div className="detail-row">
                 <label>First Name:</label>
                 <span>{selectedResident.firstName || 'N/A'}</span>
@@ -334,12 +406,14 @@ const ResidentsRecord = () => {
         </div>
       )}
 
+      {/* Add resident modal */}
       <AddResidentModal
         show={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddResident}
       />
 
+      {/* Edit resident modal */}
       <EditResidentModal
         show={showEditModal}
         onClose={() => setShowEditModal(false)}

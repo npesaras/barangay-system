@@ -1,3 +1,17 @@
+/**
+ * Dashboard Component
+ * 
+ * This component serves as the main dashboard of the application, displaying analytics 
+ * about residents including gender distribution, voter status, and other key metrics.
+ * It fetches data from the analytics service and renders it using charts and stat cards.
+ * 
+ * Features:
+ * - Displays key metrics in stat cards (total population, gender counts, voter status)
+ * - Shows gender distribution in a pie chart
+ * - Shows voter status distribution in a pie chart
+ * - Handles loading states and errors with appropriate UI feedback
+ * - Provides retry functionality for failed data fetching
+ */
 import React, { useState, useEffect } from 'react';
 import { analyticsService } from '../services/analyticsService';
 import { 
@@ -9,6 +23,7 @@ import { showToast } from '../utils/toast';
 import '../styles/Dashboard.css';
 
 const Dashboard = () => {
+  // Initialize state for analytics data
   const [stats, setStats] = useState({
     totalResidents: 0,
     maleCount: 0,
@@ -17,10 +32,13 @@ const Dashboard = () => {
     nonVotersCount: 0
   });
 
+  // State for loading and error handling
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Effect hook to fetch data on component mount
   useEffect(() => {
+    // Only fetch stats if we have a token (user is authenticated)
     const token = localStorage.getItem('token');
     if (token) {
       fetchStats();
@@ -29,12 +47,16 @@ const Dashboard = () => {
       setLoading(false);
     }
 
-    // Cleanup function
+    // Cleanup function to cancel any pending requests when component unmounts
     return () => {
       analyticsService.cleanup();
     };
   }, []);
 
+  /**
+   * Fetches analytics data from the server
+   * Handles loading state, errors, and updates stats state
+   */
   const fetchStats = async () => {
     try {
       setLoading(true);
@@ -46,6 +68,7 @@ const Dashboard = () => {
         setStats(response);
         setError(null);
       } else {
+        // Set default values if no data is returned
         setStats({
           totalResidents: 0,
           maleCount: 0,
@@ -57,6 +80,7 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error('Error in fetchStats:', err);
+      // Set default values in case of error
       setStats({
         totalResidents: 0,
         maleCount: 0,
@@ -70,6 +94,10 @@ const Dashboard = () => {
     }
   };
 
+  /**
+   * Handles retry action when data fetching fails
+   * Initiates a new fetch operation
+   */
   const handleRetry = () => {
     fetchStats();
   };
@@ -86,6 +114,7 @@ const Dashboard = () => {
 
   const COLORS = ['#8884d8', '#82ca9d'];
 
+  // Show loading indicator while data is being fetched
   if (loading) {
     return (
       <div className="dashboard">
@@ -98,10 +127,12 @@ const Dashboard = () => {
     );
   }
 
+  // Render the dashboard with analytics data
   return (
     <div className="dashboard">
       <h2>Dashboard</h2>
       
+      {/* Show error message with retry button if there's an error */}
       {error && (
         <div className="error-message">
           <span>{error}</span>
@@ -111,7 +142,9 @@ const Dashboard = () => {
         </div>
       )}
       
+      {/* Statistics cards section */}
       <div className="stats-grid">
+        {/* Total population card */}
         <div className="stat-card population">
           <div className="stat-icon">
             <FaUsers />
@@ -122,6 +155,7 @@ const Dashboard = () => {
           </div>
         </div>
         
+        {/* Male population card */}
         <div className="stat-card male">
           <div className="stat-icon">
             <FaMale />
@@ -132,6 +166,7 @@ const Dashboard = () => {
           </div>
         </div>
         
+        {/* Female population card */}
         <div className="stat-card female">
           <div className="stat-icon">
             <FaFemale />
@@ -142,6 +177,7 @@ const Dashboard = () => {
           </div>
         </div>
         
+        {/* Registered voters card */}
         <div className="stat-card voters">
           <div className="stat-icon">
             <FaVoteYea />
@@ -152,6 +188,7 @@ const Dashboard = () => {
           </div>
         </div>
         
+        {/* Non-voters card */}
         <div className="stat-card non-voters">
           <div className="stat-icon">
             <FaUserTimes />
@@ -163,63 +200,64 @@ const Dashboard = () => {
         </div>
       </div>
       
-      {loading ? (
-        <div className="dashboard-loading">Loading charts...</div>
-      ) : (
-        <div className="charts-grid">
-          <div className="chart-card">
-            <h3>Gender Distribution</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Male', value: stats.maleCount || 0 },
-                    { name: 'Female', value: stats.femaleCount || 0 }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={70}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  <Cell fill="#48bb78" />
-                  <Cell fill="#ed64a6" />
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          
-          <div className="chart-card">
-            <h3>Voter Status</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Voters', value: stats.votersCount || 0 },
-                    { name: 'Non-Voters', value: stats.nonVotersCount || 0 }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={70}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  <Cell fill="#9f7aea" />
-                  <Cell fill="#f6ad55" />
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+      {/* Charts section */}
+      <div className="charts-grid">
+        {/* Gender distribution pie chart */}
+        <div className="chart-card">
+          <h3>Gender Distribution</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: 'Male', value: stats.maleCount || 0 },
+                  { name: 'Female', value: stats.femaleCount || 0 }
+                ]}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={70}
+                fill="#8884d8"
+                dataKey="value"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {/* Colors for male and female segments */}
+                <Cell fill="#48bb78" />
+                <Cell fill="#ed64a6" />
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
-      )}
+        
+        {/* Voter status pie chart */}
+        <div className="chart-card">
+          <h3>Voter Status</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: 'Voters', value: stats.votersCount || 0 },
+                  { name: 'Non-Voters', value: stats.nonVotersCount || 0 }
+                ]}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={70}
+                fill="#8884d8"
+                dataKey="value"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {/* Colors for voters and non-voters segments */}
+                <Cell fill="#9f7aea" />
+                <Cell fill="#f6ad55" />
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 };
