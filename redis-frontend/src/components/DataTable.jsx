@@ -14,7 +14,7 @@
  * 
  * @module components/DataTable
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaEdit, FaTrash, FaEye, FaSearch, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
 import './DataTable.css';
 
@@ -65,11 +65,25 @@ const DataTable = ({
     setCurrentPage(1);
   }, [searchTerm, entriesPerPage]);
 
+  // Filter data based on search term
+  const filteredData = React.useMemo(() => {
+    if (!searchTerm.trim()) return data;
+    
+    return data.filter(item => {
+      // Search through all columns
+      return columns.some(column => {
+        const cellValue = column.accessor(item);
+        return cellValue && 
+          cellValue.toString().toLowerCase().includes(searchTerm.toLowerCase());
+      });
+    });
+  }, [data, columns, searchTerm]);
+
   // Calculate pagination values
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
-  const currentEntries = data.slice(indexOfFirstEntry, indexOfLastEntry);
-  const totalPages = Math.ceil(data.length / entriesPerPage);
+  const currentEntries = filteredData.slice(indexOfFirstEntry, indexOfLastEntry);
+  const totalPages = Math.ceil(filteredData.length / entriesPerPage);
 
   /**
    * Handle page change in pagination
@@ -93,8 +107,20 @@ const DataTable = ({
    * @param {Object} e - Event object from the search input
    */
   const handleSearchChange = (e) => {
+    // Update the search term immediately for UI feedback
     setSearchTerm(e.target.value);
+    // Reset to first page when search term changes
+    setCurrentPage(1);
   };
+
+  // Use debounce technique for filtering (if needed in the future)
+  // const debouncedSearch = useCallback(
+  //   debounce((term) => {
+  //     // Additional custom filtering logic could go here
+  //     setCurrentPage(1);
+  //   }, 300),
+  //   []
+  // );
 
   return (
     <div className="data-table">
@@ -118,13 +144,12 @@ const DataTable = ({
         </div>
         
         <div className="search-box">
-          <FaSearch className="search-icon" />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search records..."
+            aria-label="Search records"
             value={searchTerm}
             onChange={handleSearchChange}
-            aria-label="Search data"
           />
         </div>
       </div>
@@ -205,8 +230,8 @@ const DataTable = ({
       {/* Table footer with pagination controls */}
       <div className="table-footer">
         <div className="entries-info">
-          Showing {data.length > 0 ? indexOfFirstEntry + 1 : 0} to {Math.min(indexOfLastEntry, data.length)} of {data.length} entries
-          {searchTerm && ` (filtered from ${data.length} total entries)`}
+          Showing {filteredData.length > 0 ? indexOfFirstEntry + 1 : 0} to {Math.min(indexOfLastEntry, filteredData.length)} of {filteredData.length} entries
+          {searchTerm && filteredData.length !== data.length && ` (filtered from ${data.length} total entries)`}
         </div>
         
         <div className="pagination">
