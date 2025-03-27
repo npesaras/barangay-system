@@ -152,8 +152,8 @@ const ResidentForm = ({ resident, onSubmit, onCancel }) => {
           required
         >
           <option value="">Select Voter Status</option>
-          <option value="Yes">Yes</option>
-          <option value="No">No</option>
+          <option value="Registered">Registered</option>
+          <option value="Not-Registered">Not-Registered</option>
         </select>
       </div>
 

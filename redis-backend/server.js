@@ -409,6 +409,19 @@ app.post('/residents', authenticateToken, isAdmin, upload.single('profileImage')
 
     await Promise.all(savePromises);
 
+    // Update statistics
+    await client.hIncrBy('stats', 'totalResidents', 1);
+    
+    // Update voter statistics based on status
+    if (residentData.votersStatus?.toLowerCase() === 'registered') {
+      await client.hIncrBy('stats', 'totalVoters', 1);
+    }
+    
+    // Update purok statistics if available
+    if (residentData.purok) {
+      await client.hIncrBy('stats', `residents:${residentData.purok}`, 1);
+    }
+
     res.status(201).json({
       message: 'Resident added successfully',
       id,
@@ -497,6 +510,21 @@ app.put('/residents/:id', authenticateToken, isAdmin, upload.single('profileImag
       updates.profileImage = req.file.path.replace(/\\/g, '/');
     }
 
+    // Check if voter status has changed
+    if (updates.votersStatus && updates.votersStatus !== currentData.votersStatus) {
+      // If changed from Not-Registered to Registered, increment voter count
+      if (updates.votersStatus.toLowerCase() === 'registered' && 
+          currentData.votersStatus.toLowerCase() !== 'registered') {
+        await client.hIncrBy('stats', 'totalVoters', 1);
+      }
+      
+      // If changed from Registered to Not-Registered, decrement voter count  
+      if (updates.votersStatus.toLowerCase() !== 'registered' && 
+          currentData.votersStatus.toLowerCase() === 'registered') {
+        await client.hIncrBy('stats', 'totalVoters', -1);
+      }
+    }
+
     // Update resident data
     const updatePromises = Object.entries(updates).map(([key, value]) => {
       return client.hSet(`resident:${id}`, key, value);
@@ -550,7 +578,7 @@ app.delete('/residents/:id', authenticateToken, isAdmin, async (req, res) => {
     // Update statistics
     await client.hIncrBy('stats', 'totalResidents', -1);
     await client.hIncrBy('stats', `residents:${resident.purok}`, -1);
-    if (resident.votersStatus === 'Yes') {
+    if (resident.votersStatus === 'Registered') {
       await client.hIncrBy('stats', 'totalVoters', -1);
     }
     
@@ -586,7 +614,7 @@ app.get('/analytics/stats', authenticateToken, async (req, res) => {
       }
 
       // Update voters status
-      if (resident.votersStatus?.toLowerCase() === 'voter') {
+      if (resident.votersStatus?.toLowerCase() === 'registered') {
         acc.voters.voters++;
       } else {
         acc.voters.nonVoters++;
@@ -642,8 +670,8 @@ app.get('/analytics/residents', authenticateToken, async (req, res) => {
 
       if (gender === 'male') maleCount++;
       if (gender === 'female') femaleCount++;
-      if (voterStatus === 'yes') votersCount++;
-      if (voterStatus === 'no') nonVotersCount++;
+      if (voterStatus === 'registered') votersCount++;
+      if (voterStatus === 'not-registered') nonVotersCount++;
     }
 
     const response = {

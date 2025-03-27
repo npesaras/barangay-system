@@ -325,8 +325,8 @@ const EditResidentModal = ({ show, onClose, onSubmit, resident }) => {
                     required
                   >
                     <option value="">Select Status</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
+                    <option value="Registered">Registered</option>
+                    <option value="Not-Registered">Not-Registered</option>
                   </select>
                 </div>
                 <div className="form-group full-width">
