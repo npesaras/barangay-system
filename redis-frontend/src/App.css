@@ -197,12 +197,40 @@ h3 {
 }
 
 .user-role {
-  background: #4a69bd;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
   color: white;
-  padding: 5px 15px;
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: 4px;
+  margin: 0 1rem 1rem;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.role-icon {
+  margin-right: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.role-icon.admin {
+  color: #ffd700; /* Gold for admin */
+}
+
+.role-icon.user {
+  color: #90caf9; /* Light blue for regular user */
+}
+
+.role-text {
+  font-size: 0.9rem;
   font-weight: 500;
+}
+
+.role-text.admin {
+  color: #ffd700; /* Gold for admin */
+}
+
+.role-text.user {
+  color: #90caf9; /* Light blue for regular user */
 }
 
 /* Form small text */

@@ -389,7 +389,7 @@ app.delete('/students/:id', authenticateToken, isAdmin, async (req, res) => {
  * POST /residents
  * Protected: Requires admin authentication
  */
-app.post('/residents', authenticateToken, upload.single('profileImage'), async (req, res) => {
+app.post('/residents', authenticateToken, isAdmin, upload.single('profileImage'), async (req, res) => {
   try {
     const id = uuidv4();
     const residentData = req.body;
@@ -470,7 +470,7 @@ app.get('/residents/:id', authenticateToken, async (req, res) => {
  * PUT /residents/:id
  * Protected: Requires admin authentication
  */
-app.put('/residents/:id', authenticateToken, upload.single('profileImage'), async (req, res) => {
+app.put('/residents/:id', authenticateToken, isAdmin, upload.single('profileImage'), async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -523,7 +523,7 @@ app.put('/residents/:id', authenticateToken, upload.single('profileImage'), asyn
  * DELETE /residents/:id
  * Protected: Requires admin authentication
  */
-app.delete('/residents/:id', authenticateToken, async (req, res) => {
+app.delete('/residents/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -745,7 +745,7 @@ app.post('/auth/login', async (req, res) => {
   try {
     // Get user
     const hashedPassword = await client.hGet(`user:${username}`, 'password');
-    const role = await client.hGet(`user:${username}`, 'role');
+    const role = await client.hGet(`user:${username}`, 'role') || 'user'; // Default to user if no role is set
     
     console.log('Login attempt:', { username, role, hasPassword: !!hashedPassword });
 
@@ -770,6 +770,7 @@ app.post('/auth/login', async (req, res) => {
 
     res.json({
       token,
+      role, // Add role to top-level response for easier access
       user: {
         username,
         role
@@ -798,6 +799,62 @@ app.get('/auth/verify', authenticateToken, (req, res) => {
   } catch (error) {
     console.error('Token verification error:', error);
     res.status(500).json({ valid: false, message: 'Error verifying token' });
+  }
+});
+
+/**
+ * Register Regular User
+ * POST /auth/register-user
+ * Public access for regular user registration
+ */
+app.post('/auth/register-user', async (req, res) => {
+  const { username, password } = req.body;
+  
+  console.log('Regular user registration attempt:', { 
+    username,
+    passwordLength: password?.length
+  });
+  
+  try {
+    // Validate input
+    if (!username || !password) {
+      console.log('Missing fields:', {
+        username: !username,
+        password: !password
+      });
+      return res.status(400).json({ message: 'Username and password are required' });
+    }
+    
+    // Check if user exists
+    const existingUser = await client.hGet(`user:${username}`, 'password');
+    if (existingUser) {
+      console.log('Username already exists:', username);
+      return res.status(400).json({ message: 'Username already exists' });
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      console.log('Password too short');
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    // Save regular user
+    await client.hSet(`user:${username}`, 'password', hashedPassword);
+    await client.hSet(`user:${username}`, 'role', 'user'); // Set role as regular user
+    await client.hSet(`user:${username}`, 'createdAt', new Date().toISOString());
+
+    console.log('Regular user registered successfully:', username);
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ 
+      message: 'Error registering user',
+      error: error.message 
+    });
   }
 });
 

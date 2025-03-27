@@ -1,13 +1,13 @@
 /**
  * Login Component
  * 
- * This component handles user authentication including login and admin registration.
+ * This component handles user authentication including login and user registration.
  * It provides a login form for existing users and a registration modal for creating
- * new admin accounts with an admin code.
+ * new accounts with role selection (admin or regular user).
  * 
  * Features:
  * - User login with username/password
- * - Admin registration with validation
+ * - Role-based registration (admin/user)
  * - Form validation
  * - Toast notifications for success/error feedback
  * - Navigation to dashboard on successful login
@@ -44,6 +44,7 @@ const Login = ({ onLoginSuccess }) => {
     username: '',
     password: '',
     confirmPassword: '',
+    role: 'user', // Default role is user
     adminCode: ''
   });
   
@@ -88,6 +89,9 @@ const Login = ({ onLoginSuccess }) => {
       const response = await axios.post(`${API_URL}/auth/login`, credentials);
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
+        // Store user role - default to 'admin' for backward compatibility with existing backend
+        // This will be updated when we implement role-based auth in the backend
+        localStorage.setItem('userRole', response.data.role || 'admin');
         showToast.success('Login successful');
         onLoginSuccess();
         navigate('/dashboard');
@@ -101,7 +105,7 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   /**
-   * Handles admin registration form submission
+   * Handles registration form submission
    * Validates passwords match and sends registration request
    * 
    * @async
@@ -114,23 +118,53 @@ const Login = ({ onLoginSuccess }) => {
       showToast.error('Passwords do not match');
       return;
     }
+
+    // Validate admin code if admin role is selected
+    if (registerData.role === 'admin' && !registerData.adminCode) {
+      showToast.error('Admin code is required for admin registration');
+      return;
+    }
+
     try {
-      const response = await axios.post(`${API_URL}/auth/register-admin`, {
-        username: registerData.username,
-        password: registerData.password,
-        adminCode: registerData.adminCode
-      });
-      
-      if (response.data.message) {
-        showToast.success('Registration successful');
-        setShowRegisterModal(false);
-        // Reset form data after successful registration
-        setRegisterData({
-          username: '',
-          password: '',
-          confirmPassword: '',
-          adminCode: ''
+      // Use the existing register-admin endpoint for admin registration
+      if (registerData.role === 'admin') {
+        const response = await axios.post(`${API_URL}/auth/register-admin`, {
+          username: registerData.username,
+          password: registerData.password,
+          adminCode: registerData.adminCode
         });
+        
+        if (response.data.message) {
+          showToast.success('Admin registration successful');
+          setShowRegisterModal(false);
+          // Reset form data after successful registration
+          setRegisterData({
+            username: '',
+            password: '',
+            confirmPassword: '',
+            role: 'user',
+            adminCode: ''
+          });
+        }
+      } else {
+        // For regular users, use a different endpoint (we'll create this endpoint in the backend)
+        const response = await axios.post(`${API_URL}/auth/register-user`, {
+          username: registerData.username,
+          password: registerData.password
+        });
+        
+        if (response.data.message) {
+          showToast.success('User registration successful');
+          setShowRegisterModal(false);
+          // Reset form data after successful registration
+          setRegisterData({
+            username: '',
+            password: '',
+            confirmPassword: '',
+            role: 'user',
+            adminCode: ''
+          });
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -190,7 +224,7 @@ const Login = ({ onLoginSuccess }) => {
       {showRegisterModal && (
         <div className="modal">
           <div className="modal-content">
-            <h2>Register Admin Account</h2>
+            <h2>Register Account</h2>
             <form onSubmit={handleRegister}>
               <div className="form-group">
                 <input
@@ -225,16 +259,29 @@ const Login = ({ onLoginSuccess }) => {
                 />
               </div>
               <div className="form-group">
-                <input
-                  type="password"
-                  name="adminCode"
-                  value={registerData.adminCode}
+                <select
+                  name="role"
+                  value={registerData.role}
                   onChange={handleRegisterChange}
-                  placeholder="Admin Registration Code"
-                  required
-                />
-                <small>Contact system administrator for the registration code</small>
+                  className="role-select"
+                >
+                  <option value="user">Regular User</option>
+                  <option value="admin">Admin</option>
+                </select>
               </div>
+              {registerData.role === 'admin' && (
+                <div className="form-group">
+                  <input
+                    type="password"
+                    name="adminCode"
+                    value={registerData.adminCode}
+                    onChange={handleRegisterChange}
+                    placeholder="Admin Registration Code"
+                    required
+                  />
+                  <small>Contact system administrator for the registration code</small>
+                </div>
+              )}
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setShowRegisterModal(false)}>
                   Cancel

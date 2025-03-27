@@ -8,10 +8,11 @@
  * Features:
  * - Display residents in a paginated, searchable table
  * - View detailed resident information
- * - Add new residents
- * - Edit existing residents
- * - Delete residents
+ * - Add new residents (admin only)
+ * - Edit existing residents (admin only)
+ * - Delete residents (admin only)
  * - Export residents data to CSV
+ * - Role-based access control for data modification
  */
 import React, { useState, useEffect } from 'react';
 import DataTable from './DataTable';
@@ -46,11 +47,28 @@ const ResidentsRecord = () => {
   
   // Track image loading errors
   const [imageError, setImageError] = useState(false);
+  
+  // User role for permission control
+  const [userRole, setUserRole] = useState('user');
 
-  // Fetch residents data on component mount
+  // Fetch residents data on component mount and check user role
   useEffect(() => {
     fetchResidents();
+    
+    // Get user role from localStorage
+    const storedRole = localStorage.getItem('userRole');
+    if (storedRole) {
+      setUserRole(storedRole);
+    }
   }, []);
+
+  /**
+   * Checks if the current user has admin privileges
+   * @returns {boolean} True if user is an admin
+   */
+  const isAdmin = () => {
+    return userRole === 'admin';
+  };
 
   /**
    * Fetches all residents from the API
@@ -89,6 +107,12 @@ const ResidentsRecord = () => {
    * @param {Object} resident - The resident to edit
    */
   const handleEdit = (resident) => {
+    // Check if user has admin privileges
+    if (!isAdmin()) {
+      showToast.error('You do not have permission to edit residents');
+      return;
+    }
+    
     setSelectedResident(resident);
     setShowEditModal(true);
   };
@@ -99,6 +123,12 @@ const ResidentsRecord = () => {
    * @param {Object} formData - The updated resident data
    */
   const handleUpdateResident = async (id, formData) => {
+    // Double check permissions before updating
+    if (!isAdmin()) {
+      showToast.error('You do not have permission to update residents');
+      return;
+    }
+    
     try {
       // Show a loading toast with longer timeout for image uploads
       showToast.info('Updating resident...', { autoClose: 10000 });
@@ -139,6 +169,12 @@ const ResidentsRecord = () => {
    * @param {Object} resident - The resident to delete
    */
   const handleDelete = async (resident) => {
+    // Check if user has admin privileges
+    if (!isAdmin()) {
+      showToast.error('You do not have permission to delete residents');
+      return;
+    }
+    
     // Confirm deletion with the user
     if (!window.confirm('Are you sure you want to delete this resident?')) {
       return;
@@ -159,6 +195,12 @@ const ResidentsRecord = () => {
    * @param {Object} formData - The new resident data
    */
   const handleAddResident = async (formData) => {
+    // Check if user has admin privileges
+    if (!isAdmin()) {
+      showToast.error('You do not have permission to add residents');
+      return;
+    }
+    
     try {
       await residentService.createResident(formData);
       showToast.success('Resident added successfully');
@@ -250,12 +292,15 @@ const ResidentsRecord = () => {
       
       {/* Action buttons for adding residents and exporting data */}
       <div className="actions-bar">
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowAddModal(true)}
-        >
-          <FaPlus /> Add Resident
-        </button>
+        {/* Only show Add Resident button for admin users */}
+        {isAdmin() && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowAddModal(true)}
+          >
+            <FaPlus /> Add Resident
+          </button>
+        )}
         <button 
           className="btn btn-secondary"
           onClick={exportToCSV}
@@ -283,15 +328,15 @@ const ResidentsRecord = () => {
         <div className="loading-message">Loading residents data...</div>
       ) : residents.length === 0 && !error ? (
         <div className="no-data-message">
-          No residents found. Add a new resident to get started.
+          No residents found. {isAdmin() ? 'Add a new resident to get started.' : 'No resident records available.'}
         </div>
       ) : (
         <DataTable
           data={filteredResidents}
           columns={columns}
           onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onEdit={isAdmin() ? handleEdit : null} // Only provide edit handler for admins
+          onDelete={isAdmin() ? handleDelete : null} // Only provide delete handler for admins
           loading={loading}
           entriesPerPage={entriesPerPage}
           setEntriesPerPage={setEntriesPerPage}
@@ -406,20 +451,24 @@ const ResidentsRecord = () => {
         </div>
       )}
 
-      {/* Add resident modal */}
-      <AddResidentModal
-        show={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSubmit={handleAddResident}
-      />
+      {/* Add resident modal - only shown if user is admin */}
+      {isAdmin() && (
+        <AddResidentModal
+          show={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSubmit={handleAddResident}
+        />
+      )}
 
-      {/* Edit resident modal */}
-      <EditResidentModal
-        show={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSubmit={handleUpdateResident}
-        resident={selectedResident}
-      />
+      {/* Edit resident modal - only shown if user is admin */}
+      {isAdmin() && (
+        <EditResidentModal
+          show={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSubmit={handleUpdateResident}
+          resident={selectedResident}
+        />
+      )}
     </div>
   );
 };

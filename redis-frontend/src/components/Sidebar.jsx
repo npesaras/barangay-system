@@ -8,6 +8,7 @@
  * - Navigation links to Dashboard and Data sections
  * - Expandable/collapsible submenu for Data section
  * - Active state highlighting based on current route
+ * - Role indicator showing current user's permissions
  * - Logout functionality with toast notifications
  * - Responsive design
  * 
@@ -15,7 +16,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaChartBar, FaDatabase, FaAngleRight, FaAngleDown, FaSignOutAlt } from 'react-icons/fa';
+import { FaChartBar, FaDatabase, FaAngleRight, FaAngleDown, FaSignOutAlt, FaUser, FaUserShield } from 'react-icons/fa';
 import { logoutUser } from '../App';
 import { showToast } from '../utils/toast';
 
@@ -28,6 +29,9 @@ const Sidebar = () => {
   // State to track if the Data submenu is expanded
   const [dataExpanded, setDataExpanded] = useState(false);
   
+  // State to track user role
+  const [userRole, setUserRole] = useState('user');
+  
   // Hooks for navigation and location tracking
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,6 +43,12 @@ const Sidebar = () => {
   useEffect(() => {
     if (location.pathname === '/residents') {
       setDataExpanded(true);
+    }
+    
+    // Get user role from localStorage
+    const storedRole = localStorage.getItem('userRole');
+    if (storedRole) {
+      setUserRole(storedRole);
     }
   }, [location.pathname]);
 
@@ -66,6 +76,21 @@ const Sidebar = () => {
       {/* Header with application name */}
       <div className="sidebar-header">
         <h3>BRM SYSTEM</h3>
+      </div>
+      
+      {/* User role indicator */}
+      <div className="user-role">
+        {userRole === 'admin' ? (
+          <>
+            <FaUserShield className="role-icon admin" />
+            <span className="role-text admin">Admin</span>
+          </>
+        ) : (
+          <>
+            <FaUser className="role-icon user" />
+            <span className="role-text user">Regular User</span>
+          </>
+        )}
       </div>
       
       {/* Navigation menu with links */}
